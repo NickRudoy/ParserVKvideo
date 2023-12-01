@@ -29,17 +29,47 @@ def get_wall_posts(group_name):
     
     fresh_posts_id = [post["title"] for post in posts]
     video_links_id = [video["player"] for video in posts]
+    
+    # Берем id видео 
+    short_id_link = []
+    for link in video_links_id:
+        parsed_url = urlparse(link)
+        parsed_qs = parse_qs(parsed_url.query)
+        shorted_link = f"{parsed_qs['id'][0]}"
+        short_id_link.append(shorted_link)
+
+    
     # Сокращаем link
     short_video_link = []
     for link in video_links_id:
         parsed_url = urlparse(link)
         parsed_qs = parse_qs(parsed_url.query)
-        shorted_link = f"oid={parsed_qs['oid'][0]}&id={parsed_qs['id'][0]}&hash={parsed_qs['hash'][0]}"
+        shorted_link = f"vk:oid={parsed_qs['oid'][0]}&id={parsed_qs['id'][0]}&hash={parsed_qs['hash'][0]}"
         short_video_link.append(shorted_link)
+    
+    # Сокращенный link для olvya
+    short_video_link_olvya = []
+    for link, post in zip(video_links_id, posts):
+        image_url = next((img["url"] for img in post.get("image", []) if img.get("width") == 800 and img.get("height") == 450), "")
+        
+        parsed_url = urlparse(link)
+        parsed_qs = parse_qs(parsed_url.query)
+        shorted_link = f"vk:oid={parsed_qs['oid'][0]}&id={parsed_qs['id'][0]}&hash={parsed_qs['hash'][0]}&hd=2;{image_url}"
+        short_video_link_olvya.append(shorted_link)
+
+
+    # Создаём iframe
+    create_video_iframe = []
+    for link in video_links_id:
+        parsed_url = urlparse(link)
+        parsed_qs = parse_qs(parsed_url.query)
+        create_iframe = f"<iframe src='https://vk.com/video_ext.php?oid={parsed_qs['oid'][0]}&id={parsed_qs['id'][0]}&hash={parsed_qs['hash'][0]}' width='640' height='360' frameborder='0' allowfullscreen='1' allow='autoplay; encrypted-media; fullscreen; picture-in-picture'></iframe>"
+        create_video_iframe.append(create_iframe)
+    
         
     
     
-    data = {"Название": fresh_posts_id, "Ссылка": short_video_link}
+    data = {"Video ID": short_id_link, "Название": fresh_posts_id, "Ссылка olvya":short_video_link_olvya, "Ссылка byakov": short_video_link, "Iframe byakova": create_video_iframe}
     df = pd.DataFrame(data)
     df.to_csv(f"{group_name}/exist_posts_{group_name}.csv", index=False)
     
